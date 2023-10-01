@@ -80,9 +80,11 @@ if __name__ == '__main__':
                         d=10 * att_ctrl.d)      # to make it clearer, we increase size ten times
 
     print('Finish...')
-    new_path = '../../datasave/' + datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d-%H-%M-%S') + '/'
     SAVE = False
     if SAVE:
+        new_path = (os.path.dirname(os.path.abspath(__file__)) +
+                    '/../../datasave/' +
+                    datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d-%H-%M-%S') + '/')
         os.mkdir(new_path)
         att_ctrl.collector.package2file(path=new_path)
     att_ctrl.collector.plot_att()

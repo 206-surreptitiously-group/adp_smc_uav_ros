@@ -1,18 +1,19 @@
 #!/usr/bin/python3
 
 import datetime
-import os
-
+import os, sys
 import matplotlib.pyplot as plt
 import rospy
-from UAV.uav_visualization import UAV_Visualization
-import numpy as np
 
+from UAV.uav_visualization import UAV_Visualization
 from UAV.FNTSMC import fntsmc_param
 from UAV.ref_cmd import *
 from UAV.uav import uav_param
-from UAV.uav_att_ctrl import uav_att_ctrl
 from UAV.uav_pos_ctrl import uav_pos_ctrl
+
+sys.path.append(os.path.dirname(os.path.abspath(__file__)) + '/../../')
+
+from common.common_func import *
 
 '''Parameter list of the quadrotor'''
 DT = 0.01
@@ -31,7 +32,7 @@ uav_param.vel0 = np.array([0, 0, 0])
 uav_param.angle0 = np.array([0, 0, 0])
 uav_param.pqr0 = np.array([0, 0, 0])
 uav_param.dt = DT
-uav_param.time_max = 60
+uav_param.time_max = 20
 '''Parameter list of the quadrotor'''
 
 '''Parameter list of the attitude controller'''
@@ -70,7 +71,7 @@ if __name__ == '__main__':
     pos_ctrl = uav_pos_ctrl(uav_param, att_ctrl_param, pos_ctrl_param)
 
     '''2. Define parameters for signal generator'''
-    ref_amplitude = np.array([5, 5, 1, np.pi / 2])  # x y z psi
+    ref_amplitude = np.array([5, 5, 1, deg2rad(0)])  # x y z psi
     ref_period = np.array([10, 10, 4, 10])
     ref_bias_a = np.array([0, 0, 1, 0])
     ref_bias_phase = np.array([np.pi / 2, 0, 0, 0])
@@ -82,7 +83,7 @@ if __name__ == '__main__':
     throttle = pos_ctrl.m * pos_ctrl.g
 
     '''3. Control'''
-    while pos_ctrl.time < pos_ctrl.time_max:
+    while (pos_ctrl.time < pos_ctrl.time_max) and (not rospy.is_shutdown()):
         if pos_ctrl.n % 1000 == 0:
             print('time: ', pos_ctrl.n * pos_ctrl.dt)
 
@@ -116,9 +117,11 @@ if __name__ == '__main__':
 
         rate.sleep()
     print('Finish...')
-    new_path = '../../datasave/' + datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d-%H-%M-%S') + '/'
-    SAVE = False
+    SAVE = True
     if SAVE:
+        new_path = (os.path.dirname(os.path.abspath(__file__)) +
+                    '/../../datasave/' +
+                    datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d-%H-%M-%S') + '/')
         os.mkdir(new_path)
         pos_ctrl.collector.package2file(path=new_path)
     pos_ctrl.collector.plot_att()
