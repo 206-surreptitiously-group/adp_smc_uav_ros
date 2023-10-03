@@ -44,6 +44,7 @@ att_ctrl_param.lmd = np.array([2.0, 2.0, 2.0])
 att_ctrl_param.dim = 3
 att_ctrl_param.dt = DT
 att_ctrl_param.ctrl0 = np.array([0., 0., 0.])
+att_ctrl_param.saturation = np.array([0.3, 0.3, 0.3])   # max torque
 '''Parameter list of the attitude controller'''
 
 if __name__ == '__main__':
@@ -62,7 +63,7 @@ if __name__ == '__main__':
     ref_bias_phase = np.array([0., np.pi / 2, np.pi / 2])
 
     '''3. Control'''
-    while (att_ctrl.time < att_ctrl.time_max) and (not rospy.is_shutdown()):
+    while (att_ctrl.time < att_ctrl.time_max - DT / 2) and (not rospy.is_shutdown()):
         if att_ctrl.n % 1000 == 0:
             print('time: ', att_ctrl.n * att_ctrl.dt)
         '''3.1. generate reference signal'''
@@ -78,7 +79,7 @@ if __name__ == '__main__':
                         uav_att=att_ctrl.uav_att(),
                         uav_att_ref=att_ctrl.ref,
                         d=10 * att_ctrl.d)      # to make it clearer, we increase size ten times
-
+        # rate.sleep()
     print('Finish...')
     SAVE = False
     if SAVE:
@@ -88,5 +89,6 @@ if __name__ == '__main__':
         os.mkdir(new_path)
         att_ctrl.collector.package2file(path=new_path)
     att_ctrl.collector.plot_att()
+    att_ctrl.collector.plot_pqr()
     att_ctrl.collector.plot_torque()
     plt.show()

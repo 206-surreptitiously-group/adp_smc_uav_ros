@@ -147,6 +147,32 @@ class data_collector:
         plt.xlabel('time(s)')
         plt.title('yaw-psi')
 
+    def plot_pqr(self):
+        plt.figure()
+        plt.subplot(1, 3, 1)
+        plt.plot(self.t, self.state[:, 9] * 180 / np.pi, 'blue')
+        plt.grid(True)
+        # plt.ylim((-90, 90))
+        # plt.yticks(np.arange(-90, 90, 10))
+        plt.xlabel('time(s)')
+        plt.title('p')
+
+        plt.subplot(1, 3, 2)
+        plt.plot(self.t, self.state[:, 10] * 180 / np.pi, 'blue')
+        plt.grid(True)
+        # plt.ylim((-90, 90))
+        # plt.yticks(np.arange(-90, 90, 10))
+        plt.xlabel('time(s)')
+        plt.title('q')
+
+        plt.subplot(1, 3, 3)
+        plt.plot(self.t, self.state[:, 11] * 180 / np.pi, 'blue')
+        plt.grid(True)
+        # plt.ylim((-100, 100))
+        # plt.yticks(np.arange(-100, 100, 10))
+        plt.xlabel('time(s)')
+        plt.title('r')
+
     def plot_throttle(self):
         plt.figure()
         plt.plot(self.t, self.control[:, 0], 'red')  # 油门
@@ -158,24 +184,24 @@ class data_collector:
         plt.subplot(1, 3, 1)
         plt.plot(self.t, self.control[:, 1], 'red')  # Tx
         plt.grid(True)
-        plt.ylim((-0.3, 0.3))
-        plt.yticks(np.arange(-0.3, 0.3, 0.1))
+        # plt.ylim((-0.3, 0.3))
+        # plt.yticks(np.arange(-0.3, 0.3, 0.1))
         # plt.xlabel('time(s)')
         plt.title('Tx')
 
         plt.subplot(1, 3, 2)
         plt.plot(self.t, self.control[:, 2], 'red')  # Ty
         plt.grid(True)
-        plt.ylim((-0.3, 0.3))
-        plt.yticks(np.arange(-0.3, 0.3, 0.1))
+        # plt.ylim((-0.3, 0.3))
+        # plt.yticks(np.arange(-0.3, 0.3, 0.1))
         plt.xlabel('time(s)')
         plt.title('Ty')
 
         plt.subplot(1, 3, 3)
         plt.plot(self.t, self.control[:, 3], 'red')  # Tz
         plt.grid(True)
-        plt.ylim((-0.3, 0.3))
-        plt.yticks(np.arange(-0.3, 0.3, 0.1))
+        # plt.ylim((-0.3, 0.3))
+        # plt.yticks(np.arange(-0.3, 0.3, 0.1))
         plt.xlabel('time(s)')
         plt.title('Tz')
 

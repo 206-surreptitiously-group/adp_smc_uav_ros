@@ -3,6 +3,7 @@
 import datetime
 import os, sys
 import matplotlib.pyplot as plt
+import numpy as np
 import rospy
 
 from UAV.uav_visualization import UAV_Visualization
@@ -46,6 +47,7 @@ att_ctrl_param.lmd = np.array([2.0, 2.0, 2.0])
 att_ctrl_param.dim = 3
 att_ctrl_param.dt = DT
 att_ctrl_param.ctrl0 = np.array([0., 0., 0.])
+att_ctrl_param.saturation = np.array([0.3, 0.3, 0.3])
 '''Parameter list of the attitude controller'''
 
 '''Parameter list of the position controller'''
@@ -59,6 +61,7 @@ pos_ctrl_param.lmd = np.array([2.0, 2.0, 2.0])
 pos_ctrl_param.dim = 3
 pos_ctrl_param.dt = DT
 pos_ctrl_param.ctrl0 = np.array([0., 0., 0.])
+pos_ctrl_param.saturation = np.array([np.inf, np.inf, np.inf])
 '''Parameter list of the position controller'''
 
 if __name__ == '__main__':
@@ -71,8 +74,8 @@ if __name__ == '__main__':
     pos_ctrl = uav_pos_ctrl(uav_param, att_ctrl_param, pos_ctrl_param)
 
     '''2. Define parameters for signal generator'''
-    ref_amplitude = np.array([5, 5, 1, deg2rad(0)])  # x y z psi
-    ref_period = np.array([10, 10, 4, 10])
+    ref_amplitude = np.array([2, 2, 0.5, deg2rad(90)])  # x y z psi
+    ref_period = np.array([4, 4, 4, 4])
     ref_bias_a = np.array([0, 0, 1, 0])
     ref_bias_phase = np.array([np.pi / 2, 0, 0, 0])
 
@@ -83,7 +86,7 @@ if __name__ == '__main__':
     throttle = pos_ctrl.m * pos_ctrl.g
 
     '''3. Control'''
-    while (pos_ctrl.time < pos_ctrl.time_max) and (not rospy.is_shutdown()):
+    while (pos_ctrl.time < pos_ctrl.time_max - DT / 2) and (not rospy.is_shutdown()):
         if pos_ctrl.n % 1000 == 0:
             print('time: ', pos_ctrl.n * pos_ctrl.dt)
 
@@ -115,7 +118,7 @@ if __name__ == '__main__':
                         uav_att_ref=pos_ctrl.att_ref,
                         d=8 * pos_ctrl.d)      # to make it clearer, we increase size ten times
 
-        rate.sleep()
+        # rate.sleep()
     print('Finish...')
     SAVE = True
     if SAVE:
@@ -125,6 +128,7 @@ if __name__ == '__main__':
         os.mkdir(new_path)
         pos_ctrl.collector.package2file(path=new_path)
     pos_ctrl.collector.plot_att()
+    pos_ctrl.collector.plot_pqr()
     pos_ctrl.collector.plot_torque()
     pos_ctrl.collector.plot_pos()
     pos_ctrl.collector.plot_vel()

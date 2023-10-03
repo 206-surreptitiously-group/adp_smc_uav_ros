@@ -52,6 +52,7 @@ class UAV:
 
         self.throttle = self.m * self.g  # 油门
         self.torque = np.array([0., 0., 0.]).astype(float)  # 转矩
+        self.torque_max = 0.5
 
     def ode(self, xx: np.ndarray, dis: np.ndarray):
         """

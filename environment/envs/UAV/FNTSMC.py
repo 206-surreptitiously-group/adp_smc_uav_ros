@@ -12,6 +12,7 @@ class fntsmc_param:
         self.dim: int = 3
         self.dt: float = 0.01
         self.ctrl0: np.ndarray = np.array([0., 0., 0.])
+        self.saturation: np.ndarray = np.array([0., 0., 0.])
 
 
 class fntsmc_pos:
@@ -74,6 +75,7 @@ class fntsmc_att:
         self.s1 = np.zeros(self.dim)
         self.sigma = self.s + self.lmd * self.s1
         self.control = param.ctrl0
+        self.saturation = param.saturation
 
     def control_update(self,
                        second_order_att_dynamics: np.ndarray,
@@ -101,3 +103,4 @@ class fntsmc_att:
         # u2 = -self.k2 * self.sigma
 
         self.control = -np.dot(np.linalg.inv(control_mat), u1 + u2)
+        self.control = np.clip(self.control, -self.saturation, self.saturation)
