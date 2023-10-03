@@ -12,6 +12,7 @@ from UAV.FNTSMC import fntsmc_param
 from UAV.ref_cmd import *
 from UAV.uav import uav_param
 from UAV.uav_att_ctrl import uav_att_ctrl
+from common.common_func import *
 
 '''Parameter list of the quadrotor'''
 DT = 0.01
@@ -31,6 +32,8 @@ uav_param.angle0 = np.array([0, 0, 0])
 uav_param.pqr0 = np.array([0, 0, 0])
 uav_param.dt = DT
 uav_param.time_max = 30
+uav_param.pos_zone = np.atleast_2d([[-5, 5],[-5, 5],[0, 3]])
+uav_param.att_zone = np.atleast_2d([[deg2rad(-45), deg2rad(45)], [deg2rad(-45), deg2rad(45)], [deg2rad(-120), deg2rad(120)]])
 '''Parameter list of the quadrotor'''
 
 '''Parameter list of the attitude controller'''
@@ -64,6 +67,8 @@ if __name__ == '__main__':
 
     '''3. Control'''
     while (att_ctrl.time < att_ctrl.time_max - DT / 2) and (not rospy.is_shutdown()):
+        # if att_ctrl.is_att_out():
+        #     print('Attitude out!!!!!')
         if att_ctrl.n % 1000 == 0:
             print('time: ', att_ctrl.n * att_ctrl.dt)
         '''3.1. generate reference signal'''

@@ -123,3 +123,8 @@ class UAV_Visualization:
         self.marker_end_pub.publish(self.uav_end)       # rotor of the uav
 
         self.cnt += 1
+
+    def reset(self):
+        self.cnt = 0
+        self.path.poses.clear()
+        self.path_ref.poses.clear()

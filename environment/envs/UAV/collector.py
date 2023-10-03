@@ -29,6 +29,17 @@ class data_collector:
             self.state[self.index] = data['state']
             self.index += 1
 
+    def reset(self):
+        self.t = np.zeros((self.N, 1)).astype(float)
+        self.control = np.zeros((self.N, 4)).astype(float)
+        self.ref_angle = np.zeros((self.N, 3)).astype(float)
+        self.ref_pos = np.zeros((self.N, 3)).astype(float)
+        self.ref_vel = np.zeros((self.N, 3)).astype(float)
+        self.d_out = np.zeros((self.N, 3)).astype(float)
+        self.d_out_obs = np.zeros((self.N, 3)).astype(float)
+        self.state = np.zeros((self.N, 12)).astype(float)
+        self.index = 0
+
     def package2file(self, path: str):
         pd.DataFrame(np.hstack((self.t, self.state)),
                      columns=['time', 'x', 'y', 'z', 'vx', 'vy', 'vz', 'phi', 'theta', 'psi', 'p', 'q', 'r']). \

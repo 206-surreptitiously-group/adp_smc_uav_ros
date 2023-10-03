@@ -44,7 +44,3 @@ class uav_att_ctrl(UAV):
                       'state': self.uav_state_call_back()}  # quadrotor state
         self.collector.record(data_block)
         self.rk44(action=action_4_uav, dis=np.zeros(3), n=1, att_only=True)
-
-
-# if __name__ == '__main__':
-#     print('fuck')

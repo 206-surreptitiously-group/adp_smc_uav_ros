@@ -10,8 +10,11 @@ class uav_pos_ctrl(UAV):
         super(uav_pos_ctrl, self).__init__(UAV_param)
         self.att_ctrl = fntsmc_att(att_ctrl_param)
         self.pos_ctrl = fntsmc_pos(pos_ctrl_param)
+        self.att_ctrl_param = att_ctrl_param
+        self.pos_ctrl_param = pos_ctrl_param
 
         self.collector = data_collector(round(self.time_max / self.dt))
+        self.collector.reset()
 
         self.pos_ref = np.zeros(3)
         self.dot_pos_ref = np.zeros(3)
@@ -47,7 +50,7 @@ class uav_pos_ctrl(UAV):
         @return:            Tx Ty Tz
         """
         self.att_ref = ref
-        self.dot_att_ref = ref
+        self.dot_att_ref = dot_ref
         if not att_only:
             dot2_ref = np.zeros(3)
 
@@ -59,7 +62,6 @@ class uav_pos_ctrl(UAV):
         return self.att_ctrl.control
 
     def uo_2_ref_angle_throttle(self):
-        # print('fuck', uf)
         ux = self.pos_ctrl.control[0]
         uy = self.pos_ctrl.control[1]
         uz = self.pos_ctrl.control[2]
@@ -68,7 +70,6 @@ class uav_pos_ctrl(UAV):
         phi_d = np.arcsin(asin_phi_d)
         asin_theta_d = min(max((ux * np.cos(self.psi) + uy * np.sin(self.psi)) * self.m / (uf * np.cos(phi_d)), -1), 1)
         theta_d = np.arcsin(asin_theta_d)
-        # print(phi_d * 180 / np.pi, theta_d * 180 / np.pi)
         return phi_d, theta_d, uf
 
     def update(self, action: np.ndarray, dis: np.ndarray):
@@ -87,3 +88,49 @@ class uav_pos_ctrl(UAV):
                       'state': self.uav_state_call_back()}  # quadrotor state
         self.collector.record(data_block)
         self.rk44(action=action, dis=dis, n=1, att_only=False)
+
+    @staticmethod
+    def generate_random_circle(yaw_fixed: bool = False):
+        rxy = np.random.uniform(low=0, high=2.5, size=2)      # 随机生成 xy 方向振幅
+        rz = np.random.uniform(low=0, high=1.0)               # 随机生成 z  方向振幅
+        rpsi = np.random.uniform(low=0, high=np.pi / 2)
+
+        Txy = np.random.uniform(low=5, high=10, size=2)       # 随机生成 xy 方向周期
+        Tz = np.random.uniform(low=5, high=10)                # 随机生成 z  方向周期
+        Tpsi = np.random.uniform(low=5, high=10)
+
+        phase_xyzpsi = np.random.uniform(low=0, high=np.pi / 2, size=4)
+        if yaw_fixed:
+            rpsi = 0.
+            phase_xyzpsi[3] = 0.
+
+        _amplitude = np.array([rxy[0], rxy[1], rz, rpsi])  # x y z psi
+        _period = np.array([Txy[0], Txy[1], Tz, Tpsi])
+        _bias_a = np.array([0, 0, 1, 0])                    # 偏置不变
+        _bias_phase = phase_xyzpsi
+
+        return _amplitude, _period, _bias_a, _bias_phase
+
+    def uav_reset(self):
+        self.reset()
+
+    def controller_reset(self):
+        self.att_ctrl.__init__(self.att_ctrl_param)
+        self.pos_ctrl.__init__(self.pos_ctrl_param)
+
+    def collector_reset(self):
+        self.collector.reset()
+
+    def RISE(self, offset: float = 0.1):
+        offset = max(min(offset, 0.4), 0.1)
+        index = self.collector.index
+        i1 = int(offset * index)
+        i2 = int((1 - offset) * index)
+        ref = self.collector.ref_pos[i1: i2, :]     # n * 3
+        pos = self.collector.state[i1: i2, 0: 3]    # n * 3
+
+        rise_x = np.sqrt(np.sum((ref[:, 0] - pos[:, 0]) ** 2) / len(ref[:, 0]))
+        rise_y = np.sqrt(np.sum((ref[:, 1] - pos[:, 1]) ** 2) / len(ref[:, 1]))
+        rise_z = np.sqrt(np.sum((ref[:, 2] - pos[:, 2]) ** 2) / len(ref[:, 2]))
+
+        return np.array([rise_x, rise_y, rise_z])
