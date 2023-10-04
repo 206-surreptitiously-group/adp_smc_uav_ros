@@ -88,11 +88,6 @@ if __name__ == '__main__':
 
     # '''3. Control'''
     while (not rospy.is_shutdown()) and (cnt < NUM_OF_SIMULATION):
-        quad_vis.reset()
-        pos_ctrl.uav_reset()
-        pos_ctrl.controller_reset()
-        pos_ctrl.collector_reset()
-
         ref_amplitude, ref_period, ref_bias_a, ref_bias_phase = pos_ctrl.generate_random_circle(yaw_fixed=False)
 
         phi_d = phi_d_old = 0.
@@ -100,6 +95,12 @@ if __name__ == '__main__':
         dot_phi_d = (phi_d - phi_d_old) / pos_ctrl.dt
         dot_theta_d = (theta_d - theta_d_old) / pos_ctrl.dt
         throttle = pos_ctrl.m * pos_ctrl.g
+
+        quad_vis.reset()
+        pos_ctrl.uav_reset()
+        pos_ctrl.controller_reset()
+        pos_ctrl.collector_reset(round(uav_param.time_max / uav_param.dt))
+
         if cnt % 1000 == 0:
             print('Current:', cnt)
 

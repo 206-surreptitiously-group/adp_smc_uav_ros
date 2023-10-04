@@ -105,7 +105,7 @@ if __name__ == '__main__':
         quad_vis.reset()
         pos_ctrl.uav_reset_with_new_param(new_uav_param=uav_param)      # 无人机初始参数，只变了初始位置
         pos_ctrl.controller_reset_with_new_param(new_att_param=att_ctrl_param, new_pos_param=pos_ctrl_param)    # 控制器参数，一般不变
-        pos_ctrl.collector_reset()
+        pos_ctrl.collector_reset(round(uav_param.time_max / uav_param.dt))
 
         if cnt % 100 == 0:
             print('Current:', cnt)

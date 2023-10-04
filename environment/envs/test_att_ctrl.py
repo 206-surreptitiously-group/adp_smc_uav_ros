@@ -80,10 +80,12 @@ if __name__ == '__main__':
 
         '''3.3. publish'''
         quad_vis.render(uav_pos=att_ctrl.uav_pos(),
+                        target_pos=None,
                         uav_pos_ref=np.zeros(3),
                         uav_att=att_ctrl.uav_att(),
                         uav_att_ref=att_ctrl.ref,
-                        d=10 * att_ctrl.d)      # to make it clearer, we increase size ten times
+                        d=10 * att_ctrl.d,
+                        tracking=False)
         # rate.sleep()
     print('Finish...')
     SAVE = False

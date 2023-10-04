@@ -14,7 +14,7 @@ class uav_pos_ctrl(UAV):
         self.pos_ctrl_param = pos_ctrl_param
 
         self.collector = data_collector(round(self.time_max / self.dt))
-        self.collector.reset()
+        self.collector.reset(round(self.time_max / self.dt))
 
         self.pos_ref = np.zeros(3)
         self.dot_pos_ref = np.zeros(3)
@@ -139,8 +139,8 @@ class uav_pos_ctrl(UAV):
         self.att_ctrl.__init__(self.att_ctrl_param)
         self.pos_ctrl.__init__(self.pos_ctrl_param)
 
-    def collector_reset(self):
-        self.collector.reset()
+    def collector_reset(self, N: int):
+        self.collector.reset(N)
 
     def set_random_init_pos(self, pos0: np.ndarray, r:np.ndarray):
         """
