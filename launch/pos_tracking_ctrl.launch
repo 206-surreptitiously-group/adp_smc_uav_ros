@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <launch>
-    <!--  launch uav attitude contorl node  -->
-    <node name="test_pos_ctrl" pkg="adp_smc_uav_ros" type="test_pos_ctrl.py" output="screen"/>
+    <!--  launch uav attitude control node  -->
+    <node name="test_pos_tracking_ctrl" pkg="adp_smc_uav_ros" type="test_pos_tracking_ctrl.py" output="screen"/>
 
     <!--  start rviz  -->
     <node name="rviz" pkg="rviz" type="rviz" args="-d $(find adp_smc_uav_ros)/launch/vis.rviz" required="true"/>

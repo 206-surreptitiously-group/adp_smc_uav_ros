@@ -83,24 +83,31 @@ if __name__ == '__main__':
     # ref_bias_phase = np.array([np.pi / 2, 0, 0, np.pi / 2])
     # ref_amplitude, ref_period, ref_bias_a, ref_bias_phase = pos_ctrl.generate_random_circle(yaw_fixed=False)
 
-    NUM_OF_SIMULATION = 50000
+    NUM_OF_SIMULATION = 1000
     cnt = 0
 
     # '''3. Control'''
     while (not rospy.is_shutdown()) and (cnt < NUM_OF_SIMULATION):
-        quad_vis.reset()
-        pos_ctrl.uav_reset()
-        pos_ctrl.controller_reset()
-        pos_ctrl.collector_reset()
-
-        ref_amplitude, ref_period, ref_bias_a, ref_bias_phase = pos_ctrl.generate_random_circle(yaw_fixed=False)
+        ref_amplitude = np.zeros(4)
+        ref_period = np.ones(4)
+        start, ref_bias_a = pos_ctrl.generate_random_start_target()
+        ref_bias_phase = np.zeros(4)
 
         phi_d = phi_d_old = 0.
         theta_d = theta_d_old = 0.
         dot_phi_d = (phi_d - phi_d_old) / pos_ctrl.dt
         dot_theta_d = (theta_d - theta_d_old) / pos_ctrl.dt
         throttle = pos_ctrl.m * pos_ctrl.g
-        if cnt % 1000 == 0:
+
+        uav_param.pos0 = start
+        uav_param.time_max = 10.0
+
+        quad_vis.reset()
+        pos_ctrl.uav_reset_with_new_param(new_uav_param=uav_param)      # 无人机初始参数，只变了初始位置
+        pos_ctrl.controller_reset_with_new_param(new_att_param=att_ctrl_param, new_pos_param=pos_ctrl_param)    # 控制器参数，一般不变
+        pos_ctrl.collector_reset()
+
+        if cnt % 100 == 0:
             print('Current:', cnt)
 
         while pos_ctrl.time < pos_ctrl.time_max - DT / 2:
@@ -115,7 +122,7 @@ if __name__ == '__main__':
             '''3.2 outer-loop control'''
             phi_d_old = phi_d
             theta_d_old = theta_d
-            phi_d, theta_d, throttle = pos_ctrl.pos_control(ref[0:3], dot_ref[0:3], dot2_ref[0:3], obs)
+            phi_d, theta_d, throttle = pos_ctrl.pos_control(ref[0:3], dot_ref[0:3], dot2_ref[0:3], uncertainty, obs)
             dot_phi_d = (phi_d - phi_d_old) / pos_ctrl.dt
             dot_theta_d = (theta_d - theta_d_old) / pos_ctrl.dt
 
@@ -126,28 +133,17 @@ if __name__ == '__main__':
 
             '''3.4 update state'''
             action_4_uav = np.array([throttle, torque[0], torque[1], torque[2]])
-            pos_ctrl.update(action=action_4_uav, dis=uncertainty)
+            pos_ctrl.update(action=action_4_uav)
 
             '''3.3. publish'''
             quad_vis.render(uav_pos=pos_ctrl.uav_pos(),
+                            target_pos=ref[0: 3],
                             uav_pos_ref=pos_ctrl.pos_ref,
                             uav_att=pos_ctrl.uav_att(),
                             uav_att_ref=pos_ctrl.att_ref,
-                            d=8 * pos_ctrl.d)      # to make it clearer, we increase size eight times
-
-            # rate.sleep()
-        # print(cnt, '  Finish...')
-        rise = pos_ctrl.RISE()
-        # print('RISE calculation:')
-        # print('  x: %.2f,  y: %.2f,  z: %.2f' % (rise[0], rise[1], rise[2]))
-        if max(rise) > 0.03:
-            print('WARNING......')
-            _str = (str(cnt) + ',' + '[%.2f, %.2f, %.2f]' % (rise[0], rise[1], rise[2]) + '\n' +
-                    '  amplitude: [%.2f, %.2f, %.2f, %.2f]' % (ref_amplitude[0], ref_amplitude[1], ref_amplitude[2], ref_amplitude[3]) + '\n' +
-                    '  period: [%.2f, %.2f, %.2f, %.2f]' % (ref_period[0], ref_period[1], ref_period[2], ref_period[3]) + '\n' +
-                    '  bias_a: [%.2f, %.2f, %.2f, %.2f]' % (ref_bias_a[0], ref_bias_a[1], ref_bias_a[2], ref_bias_a[3]) + '\n' +
-                    '  bias_phase: [%.2f, %.2f, %.2f, %.2f]' % (ref_bias_phase[0], ref_bias_phase[1], ref_bias_phase[2], ref_bias_phase[3]) + '\n\n')
-            print(_str)
+                            d=8 * pos_ctrl.d,
+                            tracking=False)
+            rate.sleep()
         cnt += 1
         SAVE = False
         if SAVE:

@@ -1,5 +1,5 @@
 import rospy
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import PoseStamped, Pose
 from geometry_msgs.msg import Quaternion
 # from geometry_msgs.msg import Pose
 from visualization_msgs.msg import Marker
@@ -17,14 +17,17 @@ class UAV_Visualization:
         self.marker_body_pub = rospy.Publisher('/rviz_body_marker', Marker, queue_size=10)  # 画机身
         self.marker_head_pub = rospy.Publisher('/rviz_head_marker', Marker, queue_size=10)  # 画机头
         self.marker_end_pub = rospy.Publisher('/rviz_end_marker', Marker, queue_size=10)  # 画端点
-        self.traj_pub = rospy.Publisher('trajectory', Path, queue_size=10)  # 画轨迹
-        self.traj_ref_pub = rospy.Publisher('trajectory_ref', Path, queue_size=10)  # 画轨迹
+        self.marker_target_pub = rospy.Publisher('/rviz_target_marker', Marker, queue_size=10)  # 画目标点
+        self.traj_pub = rospy.Publisher('trajectory', Path, queue_size=10)  # 画实际轨迹
+        self.traj_ref_pub = rospy.Publisher('trajectory_ref', Path, queue_size=10)  # 画参考轨迹
 
-        self.uav_end = Marker()
-        self.uav_body = Marker()
-        self.uav_head = Marker()
-        self.path = Path()
-        self.path_ref = Path()
+        self.uav_end = Marker()     # 无人机四个螺旋桨末端
+        self.uav_body = Marker()    # 无人机中心
+        self.uav_head = Marker()    # 无人机朝向箭头
+        self.target = Marker()      # 无人机目标点位置 (仅 setpoint 模式)
+
+        self.path = Path()          # 无人机实际飞行轨迹
+        self.path_ref = Path()      # 无人机参考轨迹 (仅 tracking 模式)
 
         self.cnt = 0
         self.max_cnt = 500
@@ -60,6 +63,14 @@ class UAV_Visualization:
         self.uav_head.scale.z = 0.0
         self.uav_head.action = Marker.ADD
 
+        self.target.header.frame_id = 'yyf_uav'
+        self.target.type = Marker.SPHERE
+        self.target.color = ColorRGBA(r=0., g=0., b=0., a=1)
+        self.target.scale.x = 0.4
+        self.target.scale.y = 0.4
+        self.target.scale.z = 0.4
+        self.target.action = Marker.ADD
+
     @staticmethod
     def rotate_matrix(attitude: np.ndarray):
         [phi, theta, psi] = attitude
@@ -76,30 +87,47 @@ class UAV_Visualization:
         _R_b_i = _R_i_b.T  # 从机体系到惯性系的转换矩阵
         return _R_b_i
 
-    def render(self, uav_pos, uav_pos_ref, uav_att, uav_att_ref, d):
+    def render(self, uav_pos, target_pos, uav_pos_ref, uav_att, uav_att_ref, d, tracking: bool = False):
+        """
+        @param uav_pos:
+        @param uav_pos_ref:
+        @param uav_att:
+        @param uav_att_ref:
+        @param d:
+        @param tracking:
+        @return:
+        """
+        '''current pose'''
         p = PoseStamped()
         p.header.frame_id = 'yyf_uav'
         p.header.stamp = rospy.Time.now()
         p.pose.position = Point(x=uav_pos[0], y=uav_pos[1], z=uav_pos[2])
         q = R.from_euler('zyx', [uav_att[2], uav_att[1], uav_att[0]]).as_quat()  # 无人机四元数
         p.pose.orientation = Quaternion(x=q[0], y=q[1], z=q[2], w=q[3])
+        '''current pose'''
 
+        '''reference pose'''
         p_ref = PoseStamped()
         p_ref.header.frame_id = 'yyf_uav'
         p_ref.header.stamp = rospy.Time.now()
         p_ref.pose.position = Point(x=uav_pos_ref[0], y=uav_pos_ref[1], z=uav_pos_ref[2])
         q_ref = R.from_euler('zyx', [uav_att_ref[2], uav_att_ref[1], uav_att_ref[0]]).as_quat()  # 参考无人机四元数
         p_ref.pose.orientation = Quaternion(x=q_ref[0], y=q_ref[1], z=q_ref[2], w=q_ref[3])
+        '''reference pose'''
 
         self.path.poses.append(p)
-        self.path_ref.poses.append(p_ref)
+        if tracking:
+            self.path_ref.poses.append(p_ref)
+
         if self.cnt > self.max_cnt:
             self.path.poses.pop(0)
-            self.path_ref.poses.pop(0)
+            if tracking:
+                self.path_ref.poses.pop(0)
 
         self.pose_pub.publish(p)                    # publish current position
         self.traj_pub.publish(self.path)            # publish current trajectory
-        self.traj_ref_pub.publish(self.path_ref)    # publish reference trajectory
+        if tracking:
+            self.traj_ref_pub.publish(self.path_ref)    # publish reference trajectory
 
         R_b_i = self.rotate_matrix(attitude=np.array(uav_att))
         center = np.array(uav_pos)
@@ -121,6 +149,14 @@ class UAV_Visualization:
         self.marker_body_pub.publish(self.uav_body)     # center of the uav
         self.marker_head_pub.publish(self.uav_head)     # head of the uav
         self.marker_end_pub.publish(self.uav_end)       # rotor of the uav
+        if (not tracking) and (target_pos is not None):
+            _pose = Pose(position=Point(x=target_pos[0], y=target_pos[1], z=target_pos[2]),
+                         orientation=Quaternion(x=0, y=0, z=0, w=1))
+            # _pose.position = Point(x=target_pos[0], y=target_pos[1], z=target_pos[2])
+            # _pose.orientation = Quaternion(x=0, y=0, z=0, w=1)
+            self.target.pose = _pose
+            self.target.color = ColorRGBA(r=np.random.random(), g=np.random.random(), b=np.random.random(), a=1)
+            self.marker_target_pub.publish(self.target)
 
         self.cnt += 1
 

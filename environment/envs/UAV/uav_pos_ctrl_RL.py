@@ -91,23 +91,22 @@ class uav_pos_ctrl_RL(rl_base, uav_pos_ctrl):
 		"""
 		'''
 			跟踪控制，暂时不定义 “成功” 的概念，不好说啥叫成功，啥叫失败
-			因此置位 False，实际也不调这个函数即可，学习不成功可考虑再加
+			因此置为 False，实际也不调用这个函数即可，学习不成功可考虑再加
 		'''
 		return False
 
 	def is_Terminal(self, param=None):
 		self.is_terminal, self.terminal_flag = self.is_episode_Terminal()
 
-	def step_update(self, action: np.ndarray, dis: np.ndarray):
+	def step_update(self, action: list):
 		"""
 		@param action:	这个 action 其实是油门 + 三个力矩
-		@param dis:
 		@return:
 		"""
-		self.current_action = action
+		self.current_action = np.array(action)
 		self.current_state = self.state_norm()
 
-		self.update(action=self.current_action, dis=dis)
+		self.update(action=self.current_action)
 		self.is_Terminal()
 		self.next_state = self.state_norm()
 		self.get_reward()

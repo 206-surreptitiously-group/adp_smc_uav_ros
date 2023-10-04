@@ -3,9 +3,7 @@ Panels:
     Help Height: 78
     Name: Displays
     Property Tree Widget:
-      Expanded:
-        - /Path1
-        - /Path2
+      Expanded: ~
       Splitter Ratio: 0.5
     Tree Height: 549
   - Class: rviz/Selection
@@ -70,6 +68,14 @@ Visualization Manager:
     - Class: rviz/Marker
       Enabled: true
       Marker Topic: /rviz_end_marker
+      Name: Marker
+      Namespaces:
+        "": true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /rviz_target_marker
       Name: Marker
       Namespaces:
         "": true
@@ -188,4 +194,4 @@ Window Geometry:
     collapsed: false
   Width: 1200
   X: 387
-  Y: 14
+  Y: 0

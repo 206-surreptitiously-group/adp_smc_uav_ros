@@ -218,6 +218,10 @@ class UAV:
         self.pos_zone = self.param.pos_zone
         self.att_zone = self.param.att_zone
 
+    def reset_with_param(self, new_param: uav_param):
+        self.param = new_param
+        self.reset()
+
     def f1(self) -> np.ndarray:
         """
         :brief:  [1  sin(phi)tan(theta)      cos(phi)tan(theta)]
