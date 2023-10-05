@@ -142,11 +142,11 @@ if __name__ == '__main__':
                             d=8 * pos_ctrl.d,
                             tracking=True)
 
-            pos_ctrl.image = pos_ctrl.image_copy.copy()
-            pos_ctrl.draw_3d_points_projection(np.atleast_2d([pos_ctrl.uav_pos(), ref[0: 3]]), [Color().Red, Color().Green])
-            pos_ctrl.draw_error(pos_ctrl.uav_pos(), ref[0:3])
-            pos_ctrl.show_image(False)
-            writer.write(pos_ctrl.image)
+            # pos_ctrl.image = pos_ctrl.image_copy.copy()
+            # pos_ctrl.draw_3d_points_projection(np.atleast_2d([pos_ctrl.uav_pos(), ref[0: 3]]), [Color().Red, Color().Green])
+            # pos_ctrl.draw_error(pos_ctrl.uav_pos(), ref[0:3])
+            # pos_ctrl.show_image(False)
+            # writer.write(pos_ctrl.image)
 
             # rate.sleep()
         # print(cnt, '  Finish...')
