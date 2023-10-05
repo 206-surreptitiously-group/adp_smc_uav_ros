@@ -11,6 +11,7 @@ from UAV.FNTSMC import fntsmc_param
 from UAV.ref_cmd import *
 from UAV.uav import uav_param
 from UAV.uav_pos_ctrl import uav_pos_ctrl
+from environment.Color import Color
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + '/../../')
 
@@ -71,19 +72,8 @@ if __name__ == '__main__':
     '''1. Define a controller'''
     pos_ctrl = uav_pos_ctrl(uav_param, att_ctrl_param, pos_ctrl_param)
     quad_vis = UAV_Visualization()
-    # quad_vis.reset()
-    # pos_ctrl.uav_reset()
-    # pos_ctrl.controller_reset()
-    # pos_ctrl.collector_reset()
 
-    '''2. Define parameters for signal generator'''
-    # ref_amplitude = np.array([2, 2.5, 0.5, deg2rad(0)])  # x y z psi
-    # ref_period = np.array([5, 10, 10, 4])
-    # ref_bias_a = np.array([0, 0, 1, 0])
-    # ref_bias_phase = np.array([np.pi / 2, 0, 0, np.pi / 2])
-    # ref_amplitude, ref_period, ref_bias_a, ref_bias_phase = pos_ctrl.generate_random_circle(yaw_fixed=False)
-
-    NUM_OF_SIMULATION = 1000
+    NUM_OF_SIMULATION = 10
     cnt = 0
 
     # '''3. Control'''
@@ -92,6 +82,8 @@ if __name__ == '__main__':
         ref_period = np.ones(4)
         start, ref_bias_a = pos_ctrl.generate_random_start_target()
         ref_bias_phase = np.zeros(4)
+
+        ref, _, _, _ = ref_uav(pos_ctrl.time, ref_amplitude, ref_period, ref_bias_a, ref_bias_phase)  # xd yd zd psid
 
         phi_d = phi_d_old = 0.
         theta_d = theta_d_old = 0.
@@ -103,11 +95,14 @@ if __name__ == '__main__':
         uav_param.time_max = 10.0
 
         quad_vis.reset()
-        pos_ctrl.uav_reset_with_new_param(new_uav_param=uav_param)      # 无人机初始参数，只变了初始位置
-        pos_ctrl.controller_reset_with_new_param(new_att_param=att_ctrl_param, new_pos_param=pos_ctrl_param)    # 控制器参数，一般不变
+        pos_ctrl.uav_reset_with_new_param(new_uav_param=uav_param)  # 无人机初始参数，只变了初始位置
+        pos_ctrl.controller_reset_with_new_param(new_att_param=att_ctrl_param, new_pos_param=pos_ctrl_param)  # 控制器参数，一般不变
         pos_ctrl.collector_reset(round(uav_param.time_max / uav_param.dt))
+        pos_ctrl.draw_3d_points_projection(np.atleast_2d([ref[0:3]]), [Color().Green])
+        pos_ctrl.draw_init_image()
+        pos_ctrl.show_image(True)
 
-        if cnt % 100 == 0:
+        if cnt % 1 == 0:
             print('Current:', cnt)
 
         while pos_ctrl.time < pos_ctrl.time_max - DT / 2:
@@ -143,7 +138,13 @@ if __name__ == '__main__':
                             uav_att_ref=pos_ctrl.att_ref,
                             d=8 * pos_ctrl.d,
                             tracking=False)
-            rate.sleep()
+
+            pos_ctrl.image = pos_ctrl.image_copy.copy()
+            pos_ctrl.draw_3d_points_projection(np.atleast_2d([pos_ctrl.uav_pos()]), [Color().Red])
+            pos_ctrl.draw_error(pos_ctrl.uav_pos(), ref[0:3])
+            pos_ctrl.show_image(False)
+
+            # rate.sleep()
         cnt += 1
         SAVE = False
         if SAVE:

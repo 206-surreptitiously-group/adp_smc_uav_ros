@@ -11,6 +11,8 @@ from UAV.FNTSMC import fntsmc_param
 from UAV.ref_cmd import *
 from UAV.uav import uav_param
 from UAV.uav_pos_ctrl import uav_pos_ctrl
+from environment.Color import Color
+import cv2 as cv
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + '/../../')
 
@@ -34,6 +36,8 @@ uav_param.angle0 = np.array([0, 0, 0])
 uav_param.pqr0 = np.array([0, 0, 0])
 uav_param.dt = DT
 uav_param.time_max = 60
+uav_param.pos_zone = np.atleast_2d([[-3, 3], [-3, 3], [0, 3]])
+uav_param.att_zone = np.atleast_2d([[deg2rad(-45), deg2rad(45)], [deg2rad(-45), deg2rad(45)], [deg2rad(-120), deg2rad(120)]])
 '''Parameter list of the quadrotor'''
 
 '''Parameter list of the attitude controller'''
@@ -71,24 +75,15 @@ if __name__ == '__main__':
     '''1. Define a controller'''
     pos_ctrl = uav_pos_ctrl(uav_param, att_ctrl_param, pos_ctrl_param)
     quad_vis = UAV_Visualization()
-    # quad_vis.reset()
-    # pos_ctrl.uav_reset()
-    # pos_ctrl.controller_reset()
-    # pos_ctrl.collector_reset()
 
     '''2. Define parameters for signal generator'''
-    # ref_amplitude = np.array([2, 2.5, 0.5, deg2rad(0)])  # x y z psi
-    # ref_period = np.array([5, 10, 10, 4])
-    # ref_bias_a = np.array([0, 0, 1, 0])
-    # ref_bias_phase = np.array([np.pi / 2, 0, 0, np.pi / 2])
-    # ref_amplitude, ref_period, ref_bias_a, ref_bias_phase = pos_ctrl.generate_random_circle(yaw_fixed=False)
-
-    NUM_OF_SIMULATION = 1000
+    NUM_OF_SIMULATION = 10
     cnt = 0
 
     # '''3. Control'''
     while (not rospy.is_shutdown()) and (cnt < NUM_OF_SIMULATION):
         ref_amplitude, ref_period, ref_bias_a, ref_bias_phase = pos_ctrl.generate_random_circle(yaw_fixed=False)
+        ref, _, _, _ = ref_uav(pos_ctrl.time, ref_amplitude, ref_period, ref_bias_a, ref_bias_phase)
 
         phi_d = phi_d_old = 0.
         theta_d = theta_d_old = 0.
@@ -96,13 +91,22 @@ if __name__ == '__main__':
         dot_theta_d = (theta_d - theta_d_old) / pos_ctrl.dt
         throttle = pos_ctrl.m * pos_ctrl.g
 
-        quad_vis.reset()
-        pos_ctrl.uav_reset()
-        pos_ctrl.controller_reset()
-        pos_ctrl.collector_reset(round(uav_param.time_max / uav_param.dt))
+        uav_param.time_max = 30
+        uav_param.pos0 = pos_ctrl.set_random_init_pos(pos0=ref[0:3], r=0.3 * np.ones(3))
 
-        if cnt % 1000 == 0:
+        quad_vis.reset()
+        pos_ctrl.uav_reset_with_new_param(new_uav_param=uav_param)  # 无人机初始参数，只变了初始位置
+        pos_ctrl.controller_reset_with_new_param(new_att_param=att_ctrl_param, new_pos_param=pos_ctrl_param)  # 控制器参数，一般不变
+        pos_ctrl.collector_reset(round(uav_param.time_max / uav_param.dt))
+        ref_traj = pos_ctrl.generate_ref_pos_trajectory(ref_amplitude, ref_period, ref_bias_a, ref_bias_phase)
+        pos_ctrl.draw_3d_trajectory_projection(ref_traj)
+        pos_ctrl.draw_init_image()
+        pos_ctrl.draw_3d_points_projection(np.atleast_2d([pos_ctrl.uav_pos()]), [Color().Red])
+        pos_ctrl.show_image(True)
+
+        if cnt % 1 == 0:
             print('Current:', cnt)
+        writer = cv.VideoWriter('record.mp4', cv.VideoWriter_fourcc(*'mp4v'), 300, (pos_ctrl.width, pos_ctrl.height), True)
 
         while pos_ctrl.time < pos_ctrl.time_max - DT / 2:
             # if pos_ctrl.n % 1000 == 0:
@@ -129,7 +133,7 @@ if __name__ == '__main__':
             action_4_uav = np.array([throttle, torque[0], torque[1], torque[2]])
             pos_ctrl.update(action=action_4_uav)
 
-            '''3.3. publish'''
+            '''3.5. publish'''
             quad_vis.render(uav_pos=pos_ctrl.uav_pos(),
                             target_pos=None,
                             uav_pos_ref=pos_ctrl.pos_ref,
@@ -138,8 +142,15 @@ if __name__ == '__main__':
                             d=8 * pos_ctrl.d,
                             tracking=True)
 
+            pos_ctrl.image = pos_ctrl.image_copy.copy()
+            pos_ctrl.draw_3d_points_projection(np.atleast_2d([pos_ctrl.uav_pos(), ref[0: 3]]), [Color().Red, Color().Green])
+            pos_ctrl.draw_error(pos_ctrl.uav_pos(), ref[0:3])
+            pos_ctrl.show_image(False)
+            writer.write(pos_ctrl.image)
+
             # rate.sleep()
         # print(cnt, '  Finish...')
+        writer.release()
         rise = pos_ctrl.RISE()
         # print('RISE calculation:')
         # print('  x: %.2f,  y: %.2f,  z: %.2f' % (rise[0], rise[1], rise[2]))
